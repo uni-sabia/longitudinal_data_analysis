@@ -3,7 +3,6 @@ library(desc)
 library(survival)
 
 # Research question: how long does it take for people to leave home for the first time in Sweden? 
-## Note: use base R as much as possible for later group work. 
 
 # Read in the data (European Social Survey 2018/19)
 df1 <- read_dta("data/01_ESS/ESS9e03.dta", 
