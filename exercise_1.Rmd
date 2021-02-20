@@ -51,6 +51,7 @@ nrow(ess_germany_women) # How large is the analytical sample?
 ```
 
 The original sample had 49,519 observations. The analytical sample has 1074 observations. 
+
 The sample size shrank because we eliminated rows with missing values for any of the variables of interest we selected, which adds up to 3855 observations. Finally, we zoomed in by selecting observations for women in Germany. Note that 2 observations were dropped because they had never lived with a parent (lvpntyr=1111).
 
 ## b) Construct an event history data (variables TIME and EVENT). How many events and
