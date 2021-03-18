@@ -1,0 +1,58 @@
+---
+title: "Explore research questions"
+author: "Uni Lee"
+date: "3/11/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(haven)
+library(dplyr)
+```
+
+# Research question: How has carbon pricing affected carbon emissions? 
+
+Carbon pricing is a policy instrument that internalizes the the external costs of greenhouse gas (GHG) emissions in market price. There are two main mechanisms: carbon tax and emissions trading system. Since 1990, the number of countries that adopted carbon pricing policy to curb climate change increased from 2 to 29. How effective was the introduction of carbon pricing on reducing carbon emissions? 
+
+According to the "Kaya identity (Kaya and Keiichi, 1997)", emissions are also affected by the number of population, GDP, energy consumption per GDP and carbon intensity of energy.
+
+$$
+Carbon Emissions = Population * GDP * \frac{Energy}{GDP} * \frac{CO^2}{Energy}
+$$
+
+Based on the Kaya identity, it can be hypothesized that carbon pricing policy reduces carbon emissions by reducing the carbon intensity of energy. The mechanism through which the reduction occurs is as follows: carbon pricing decreases consumption of high-carbon energy sources such as fossil fuel by increasing its relative price in comparison to low-carbon energy sources such as solar and wind. 
+
+Note that population, GDP, and energy consumption per capita are time-variant variables. 
+
+## Data 
+
+Two sources of data are utilized to analyze the effect of carbon pricing on carbon emissions. 
+
+* Our World in Data, [CO2 and Greenhouse Gas Emissions dataset](https://github.com/owid/co2-data)
+
+This is a country-level panel data on carbon emissions, population, GDP from 1751 to 2018. 
+
+* The World Bank, [database of carbon pricing policies worldwide](https://carbonpricingdashboard.worldbank.org/).   
+
+This dataset provides the list of national-level carbon pricing initiatives that have been implemented. 
+
+```{r}
+co2_raw <- read.csv("data/04_co2/owid-co2-data.csv", sep=",")
+names(co2_raw)
+
+```
+# Methodology
+
+## Fixed effects 
+
+Regress co2 per capita on tax and condition it country name and year. 
+
+
+# References 
+
+
+
+Kaya, Yoichi; Yokoburi, Keiichi (1997). Environment, energy, and economy : strategies for sustainability. Tokyo [u.a.]: United Nations Univ. Press. ISBN 9280809113.
+
+https://carbonpricingdashboard.worldbank.org/
