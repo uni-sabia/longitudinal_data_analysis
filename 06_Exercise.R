@@ -37,10 +37,20 @@ share <- share_raw %>%
          ) %>%
   select(id, wave, eurod, vol, gender, fam, country, edu, age) %>%
   na.omit()
+length(share_raw$age[which(share_raw$age==50.0)])
 
 ## Number of subjects
-nrow(share) 
-nrow(share)/2 
+share_spell <- share %>% arrange(id, wave) %>%
+  group_by(id) %>%
+  mutate(spell=row_number(),
+         spell_max=(max(spell)))
+
+
+table(share_spell$spell_max)
+
+# Hence, there are 30125 respondents 
+length(unique(share$id))
+
 
 ## Distribution of the outcome variable (eurod)
 dist_data <- share %>% group_by(vol, eurod) %>%
