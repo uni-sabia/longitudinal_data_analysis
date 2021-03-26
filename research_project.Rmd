@@ -9,44 +9,81 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(haven)
 library(dplyr)
+library(ggplot2)
 ```
 
-# Research question: How has carbon pricing affected carbon emissions? 
+# Research question: How does the expansion of renewable energy affect carbon emissions? 
 
-Carbon pricing is a policy instrument that internalizes the the external costs of greenhouse gas (GHG) emissions in market price. There are two main mechanisms: carbon tax and emissions trading system. Since 1990, the number of countries that adopted carbon pricing policy to curb climate change increased from 2 to 29. How effective was the introduction of carbon pricing on reducing carbon emissions? 
+In recent years, renewable energy was rapidly deployed to curb carbon emissions. Has the renewable energy actually decreased carbon emissions? 
 
-According to the "Kaya identity (Kaya and Keiichi, 1997)", emissions are also affected by the number of population, GDP, energy consumption per GDP and carbon intensity of energy.
+Theoretically, it should. According to the "Kaya identity (Kaya and Keiichi, 1997)", emissions are also affected by the number of population, GDP, energy consumption per GDP and carbon intensity of energy. Increased share of renewable energy decreases the carbon intensity of energy. Therefore, it can be hypothesized that the higher the share of renewable energy is, the lower the carbon emissions when the population, GDP and energy consumption per capita are held constant.  
 
 $$
 Carbon Emissions = Population * GDP * \frac{Energy}{GDP} * \frac{CO^2}{Energy}
 $$
 
-Based on the Kaya identity, it can be hypothesized that carbon pricing policy reduces carbon emissions by reducing the carbon intensity of energy. The mechanism through which the reduction occurs is as follows: carbon pricing decreases consumption of high-carbon energy sources such as fossil fuel by increasing its relative price in comparison to low-carbon energy sources such as solar and wind. 
-
-Note that population, GDP, and energy consumption per capita are time-variant variables. 
-
 ## Data 
 
-Two sources of data are utilized to analyze the effect of carbon pricing on carbon emissions. 
+To test this assumption, we will use two sources of data:
 
 * Our World in Data, [CO2 and Greenhouse Gas Emissions dataset](https://github.com/owid/co2-data)
 
 This is a country-level panel data on carbon emissions, population, GDP from 1751 to 2018. 
 
-* The World Bank, [database of carbon pricing policies worldwide](https://carbonpricingdashboard.worldbank.org/).   
+* Our World in Data, [Data on energy](https://github.com/owid/energy-data)).   
 
-This dataset provides the list of national-level carbon pricing initiatives that have been implemented. 
+This dataset provides national macroeconomic meterics, energy mix, electricity mix and other relevant measures from 1980 to 2019 for 242 countries.
 
 ```{r}
+energy_raw <- read.csv("data/04_co2/owid-energy-data.csv", sep=";")
+names(energy_raw)
+
 co2_raw <- read.csv("data/04_co2/owid-co2-data.csv", sep=",")
 names(co2_raw)
 
+energy <- energy_raw %>% select(
+  iso_code, country, year,
+  gdp, population,
+  energy_per_gdp,
+  coal_share_elec,
+  coal_share_energy,
+  gas_share_elec,
+  gas_share_energy,
+  hydro_share_elec, hydro_share_energy,
+  nuclear_share_elec,
+  nuclear_share_energy,
+  oil_share_elec,
+  oil_share_energy,
+  renewables_share_elec,
+  renewables_share_energy
+) %>% na.omit() %>% filter(country !="World")
+nrow(energy)
+
+co2 <- co2_raw %>% select(
+  country, year,
+  co2, co2_growth_prct, co2_per_unit_energy) %>% na.omit()
+nrow(co2)
+
+co2_energy <- left_join(energy, co2, by=c("country", "year"))
+
+ggplot(co2_energy, aes(x=renewables_share_energy, y=co2_growth_prct)) +
+  geom_point()
+
+ggplot(co2_energy, aes(x=year, y=co2_growth_prct)) +
+  geom_point()
+
 ```
-# Methodology
 
-## Fixed effects 
+# Preliminary descriptive analysis 
 
-Regress co2 per capita on tax and condition it country name and year. 
+```{r}
+
+```
+
+
+# Methodology: fixed effects 
+
+
 
 
 # References 
@@ -55,4 +92,22 @@ Regress co2 per capita on tax and condition it country name and year.
 
 Kaya, Yoichi; Yokoburi, Keiichi (1997). Environment, energy, and economy : strategies for sustainability. Tokyo [u.a.]: United Nations Univ. Press. ISBN 9280809113.
 
-https://carbonpricingdashboard.worldbank.org/
+# Research methods
+1) Kaplan-meier: median survival time (how long does it take for something to go through something?) 
+2) Log-rank test: are the group differences significant? 
+3) Cox: What are the rates of an event occuring and how are they different among groups?
+4) DiD / Fixed effects: what is the effect of x on y, controlling for time-constant unobserved heterogeneity?  
+
+- Change in carbon emissions after carbon pricing was introduced 
+ => diff-in-diff
+  * Controls for time-constant characteristics of the country
+  * Cannot control for time-varying heterogeneity 
+  * Need a balanced dataset 
+  * Control for GDP 
+
+
+What is the effect of more renewable energy share in carbon emissions?
+ => Fixed effects 
+ * controls for time-constant characteristics of the country
+ * control for time-varying heterogeneity: GDP, population, 
+ * longitudinal data for % of renewables in the energy mix and carbon emissions

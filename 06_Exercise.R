@@ -13,11 +13,11 @@ share_raw <- read_dta("data/05_EasyShare/EasyShare.dta")
 ## Select variables
 share <- share_raw %>% 
   filter(country %in% c(11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 23), 
-         age > 50 & age < 80,
+         age >= 50 & age < 80 ,
          isced1997_r > 0 & isced1997_r < 10,
          mar_stat > 0,
          eurod >= 0,
-         ac002d1 >=0) %>% 
+         ac002d1 >= 0) %>% 
   mutate(id=as.factor(mergeid),
          wave=as.factor(wave),
          eurod=as.numeric(eurod),
@@ -37,7 +37,6 @@ share <- share_raw %>%
          ) %>%
   select(id, wave, eurod, vol, gender, fam, country, edu, age) %>%
   na.omit()
-length(share_raw$age[which(share_raw$age==50.0)])
 
 ## Number of subjects
 share_spell <- share %>% arrange(id, wave) %>%
@@ -45,10 +44,12 @@ share_spell <- share %>% arrange(id, wave) %>%
   mutate(spell=row_number(),
          spell_max=(max(spell)))
 
-
+## Number of people who participated in only one or both waves
 table(share_spell$spell_max)
 
-# Hence, there are 30125 respondents 
+## Number of observations
+nrow(share)
+## Number of respondents
 length(unique(share$id))
 
 
@@ -67,7 +68,7 @@ distribution <- ggplot(dist_data, aes(x=as.factor(eurod), y=share, fill=vol)) +
        fill = "") +
   theme(legend.position="bottom") +
   scale_fill_manual(values=c("blue", "red"))
-
+distribution
 ggsave("figures/6_graph1.png", distribution, width=8, height =5)
 
 ## Summary statistics
@@ -91,3 +92,5 @@ model4 <- plm(eurod ~ vol + wave, data=share, index=c("id", "wave"))
 model5 <- plm(eurod ~ vol + wave + fam, data=share, index=c("id", "wave"))
 
 stargazer(model4, model5, type="text")
+
+
