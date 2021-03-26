@@ -1,0 +1,128 @@
+---
+title: "Survival analysis of wind turbines in America"
+author: "Uni Lee"
+date: "3/26/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(janitor)
+library(tidyverse)
+library(stringr)
+library(tidyr)
+library(survival)
+library(broom)
+library(survminer)
+```
+
+# Research question
+
+Do public ordinances for wind power (ie. ordinance) have an impact on the lifetime of wind turbines?
+ 
+ - Which state has wind power ordinance? 
+ - How long is the lifetime of a typical wind turbines in the US?  
+ - Does governmental ordinance have an impact on the duration of wind turbines? 
+ 
+ >> Wind energy ordinances adopted by counties, towns, and other types of municipalities are one of the best ways for local governments to identify conditions and priorities for all types of wind development. These ordinances regulate aspects of wind projects such as their location, permitting process, and construction. The standards specified in ordinances provide clarity to wind developers and the public. Ordinances may also address issues of community impact such as: land use, noise standards, and safety.
+ Source: https://windexchange.energy.gov/policies-incentives?page=11&sort_by=type
+
+
+# Data
+
+1) [Onshore Industrial Wind Turbine Locations for the United States from 1981 to March 2014](https://www.sciencebase.gov/catalog/item/55c4aa9be4b033ef52106e2f)
+ - Variables of interest: fid, on_year_s, on_year, year_range, decommiss, mw_turbine, total_cpcy, manufac, model, tower_h, blade_l, rotor_dia, state, county
+ - 48,976 observations
+2) [Wind energy ordinance database](https://windexchange.energy.gov/policies-incentives?page=11&sort_by=type)
+ - Variables of interest: id, city, state, type_of_ordinance, type_of_wind, enacted_date, expired_date, ordinances
+ - 570 observations
+3) [List of US cities and counties](https://simplemaps.com/data/us-cities) 
+ - Used to allocate county-level ordinance to the turbine data
+ 
+```{r}
+# Load datasets and select variables of interest
+turbine_raw <- read.csv("data/07_wind/onshore_wind_data.csv", sep=";") %>% clean_names() %>%
+  select(fid, site_name, on_year_s, on_year, year_range, decommiss, mw_turbine, total_cpcy, manufac, model, tower_h, blade_l, rotor_dia, state, county)
+
+ordinance_raw <- read.csv("data/07_wind/policies-incentives.csv", sep=",") %>% clean_names() %>%
+  select(id, city, state, type_of_ordinance, type_of_wind, enacted_date, expired_date, ordinances)
+
+cities <- read.csv("data/07_wind/uscities.csv") %>% clean_names() %>%
+  select(city, county_name)
+```
+
+# Data Cleaning
+
+In the turbine dataset, unknown data are coded as "-99999" for numeric variables and "unknown" for character variables. We will take out rows that contain unknowns. After eliminating NAs, we get 37,645 observations. Secondly, there are 55 rows with no information on the year of decommissioning. So we take this out as well. 
+
+```{r}
+# 1. Omit NAs 
+turbine <- turbine_raw %>% 
+  mutate(across(where(is.character), ~na_if(.,"unknown"))) %>%
+  mutate(across(where(is.numeric), ~na_if(.,-99999))) %>%
+  na.omit() # 37645 observations
+
+# 2. Filter out rows that do not have the year of decommissioning 
+turbine_2 <- turbine %>% filter(year_range =="no" & decommiss =="yes")
+turbine_filter <- turbine_2$fid
+
+`%notin%` <- Negate(`%in%`) # Create an operater that negates %in%
+
+turbine_3 <- turbine %>% filter(fid %notin% turbine_filter) # Now we have a clean dataset!
+
+# 3. Create time variables
+## 3-1. Get the year of decomissioning
+turbine_4 <- turbine_3 %>% 
+  mutate(year_e = as.numeric(str_sub(on_year, 6, 9))) %>% 
+  select(-on_year)
+
+## 3-2. Calculate lifetimes
+turbine_5 <- turbine_4 %>% 
+  mutate(lifetime = ifelse(
+    decommiss == "yes", year_e - on_year_s -1, 
+    2014-on_year_s-1)) %>% # because 2014 was the date when data was taken 
+  mutate(decommiss = ifelse(
+    decommiss == "yes", 1, 0
+  ))
+
+```
+
+# Descriptive statistics
+
+```{r}
+table(turbine_3$decommiss) # There are 37,085 cases and there are 505 wind turbines that have been decommissioned. This is a small number in comparison to turbines that are currently running. 
+```
+
+ 
+* Method: Kapaln-meier, Cox
+
+* Dependent variable 
+ 1) Time it takes for a turbine to be decommissioned (date of commissioning and date of decommissioning)
+ 2) Hazard ratio of decommission of wind turbines, conditioning on availability of governmental ordinance
+ 
+* Independent variable 
+ - State ordinance (dummy), manufacturer, model, total capacity, Region (state), model, Company, tower height, blade length, rotor diameter
+
+
+```{r}
+# Survival function
+turbine_6 <- turbine_5 %>% filter(decommiss==1) 
+survival <- survfit(Surv(turbine_5$lifetime, turbine_5$decommiss) ~ 1)
+survival_tidy <- tidy(survival)
+
+summary(survival)
+plot(survival)
+```
+
+
+References
+https://www.ncsl.org/research/energy/state-wind-energy-siting.aspx
+
+https://www.brookings.edu/wp-content/uploads/2020/01/FP_20200113_renewables_land_use_local_opposition_gross.pdf
+
+https://www.nrel.gov/docs/fy10osti/48583.pdf
+
+
