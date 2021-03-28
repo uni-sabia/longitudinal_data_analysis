@@ -1,0 +1,199 @@
+---
+title: "Did Fukushima nuclear accident change people's concerns about the environment?"
+author: "Uni Lee"
+date: "3/26/2021"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(haven)
+library(dplyr)
+library(janitor)
+library(ggplot2)
+library(table1)
+library(stringr)
+library(stargazer)
+library(plm)
+
+```
+
+# Research question
+
+- Did Fukushima nuclear accident change people's concerns about the environment? 
+
+# Hypothesis
+
+The level of worries about the environment increased after the Fukushima accident in 2011. 
+
+# Methodology
+
+OLS
+Difference-in-difference
+Fixed Effects 
+
+# Data
+
+For this study, we will use the Socio-Economic Panel (SOEP) provided by DIW Berlin. We select data from the years 2010 (one year before the accident) and in 2012 (one year after the accident). 
+
+Main variables of interest are the following:
+
+* Dependent variable:
++ How worried are you about the environment (_plh0036_)?
+-- 1: very worried
+-- 2: somewhat worried
+-- 3: not worried
+
+* Independent variable: 
++ Dummy that indicates whether the interview was taken place before or after Fukushima accident (2011).
+-- 0: Before the accident 
+-- 1: After the accident
+
++ Demographics: 
+sex (0 = female), 
+fam (0 = single), 
+emp (0 = employed),
+age group (agec), 
+education (Low, medium, high)
+
++ time-varying individual heterogeneity:
+life satisfaction (0 - 10)
+health (0 - 10)
+
+
+## Data preparation
+
+```{r}
+soep_raw <- readRDS("data/08_soep/SOEP_2.rds") %>% 
+  clean_names()
+
+# Filter out valid cases and change factors into numeric values
+soep <- soep_raw %>%
+  select(-plh0160) %>%
+  filter(plh0036 %in% c(1,2,3),
+         emp %in% c("1-Employment", "2-Unemployment"),
+         satis %in% c(0,1,2,3,4,5,6,7,8,9,10),
+         health %in% c(0,1,2,3,4,5,6,7,8,9,10),
+         year >= 2008 & year <= 2015) %>%
+  mutate(plh0036 = as.numeric(plh0036),
+         mig = as.factor(ifelse(mig == "1-native", 0, 1)),
+         sex = as.factor(ifelse(sex == "1-Female", 0, 1)),
+         fam = as.factor(ifelse(fam == "1-not married", 0, 1)),
+         emp = as.factor(ifelse(emp == "1-Employment", 0, 1)),
+         satis = as.numeric(satis),
+         health = as.numeric(health)) %>%
+  mutate(agec = as.factor(case_when(
+    agec %in% c("17-19", "20-29") ~ "17-29",
+    agec == "30-39" ~ "30-39",
+    agec == "40-49" ~ "40-49",
+    agec == "50-59" ~ "50-59",
+    agec %in% c("60-69", "70+") ~ "60+" 
+  ))) %>%
+  mutate(fukushima = ifelse(year > 2011, 1,0)) %>%
+  na.omit()
+
+nrow(soep)          
+length(unique(soep$id))
+```
+
+# Descriptive Statistics
+
+## How people's concerns about the environment changes over time
+
+```{r}
+# For descriptive stats 
+soep_2 <- soep %>%
+  group_by(year) %>%
+  summarize(mean_concern = mean(plh0036))
+
+
+ggplot(soep_2, aes(x=year, y=mean_concern)) +
+  geom_line() + geom_vline(xintercept=2011, linetype="dashed", color="red") +
+  theme_classic() +
+  labs(title="Change in concerns about the environment 2008-2015",
+       y="average concern about the environment") +
+  theme(axis.title.x=element_blank(),
+        title=element_text(vjust=0.5))
+```
+
+## Demographics
+
+```{r}
+# Summary table
+table1::label(soep$plh0036) <- "E Concerns"
+table1::label(soep$sex) <- "Gender"
+table1::label(soep$mig) <- "Migration status"
+table1::label(soep$emp) <- "Employment status"
+table1::label(soep$fam) <- "Family statis"
+table1::label(soep$edu) <- "Education level"
+
+table1::table1(~plh0036 + sex + mig, data=soep) 
+
+```
+
+# Ordinary Least Squares
+
+For a simple OLS, we regress the score for environmental concerns on Fukushima dummy variable and control for the demographic variables.
+
+```{r results="asis"}
+ols_1 <- lm(plh0036 ~ fukushima, data=soep)
+ols_2 <- lm(plh0036 ~ fukushima + sex + emp + edu + mig, data=soep)
+
+stargazer(ols_1, ols_2, type="html", title = "Ordinary Least Squares", header=FALSE)
+```
+
+# Fixed Effects 
+
+The OLS regression result is likely to be biased because it does not control for unobserved individual differences that can affect the change in concerns for the environment. For example, respondents' political views and personal traits that make them more sensitive to global threats are not controlled for.
+
+Therefore, we apply fixed effects method to control for individual differences. 
+
+```{r results="asis"}
+fe_1 <- plm(plh0036 ~ fukushima, data=soep, index = c("id"), model="within")
+fe_2 <- plm(plh0036 ~ fukushima + fam + emp + satis + health, data=soep, index = "id", model = "within")
+
+stargazer(fe_1, fe_2, type="html", title ="Fixed Effects", header=FALSE)
+```
+
+
+# Difference in Difference
+
+The OLS regression is likely to be biased because it does not control for time-varying individual heterogeneity. 
+
+Can we apply diff-in-diff approach here?
+Yes, but only as long as we have data on the month in which the interview took place. 
+Respondents who interviewed before March : control group
+Respondents who interviewed after March : treatment group 
+
+
+## Data prep for Diff in Diff
+
+Balance the panel data from year 2010, 2011.
+Treat individuals who were interviewed before March as control group,
+Treat individuals who were interviewed after March as treatment group. 
+
+```{r}
+soep_1 <- soep_raw %>% 
+  select(-satis, -plh0160) %>%
+  filter(year == 2010 | year == 2012) %>% #Filter by year
+  mutate(fukushima = ifelse(year > 2011, 1, 0))  %>% # Create dummy variable for fukushima
+  arrange(id, year) %>% ## Check if the data is balanced 
+  group_by(id) %>%
+  mutate(spell=row_number()) %>%
+  mutate(spell_max=max(spell)) %>%
+  filter(spell_max == 2) %>% 
+  select(-spell, -spell_max)
+
+# Calculate difference
+soep_dif <- soep %>%
+  group_by(id) %>%
+  mutate(plh0036_lag = lag(plh0036)) %>%
+  mutate(diff_plh0036 = plh0036 - plh0036_lag) %>%
+  filter(year==2012)
+
+```
+
+
