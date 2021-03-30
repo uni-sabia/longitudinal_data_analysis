@@ -3,8 +3,8 @@ title: "Did Fukushima nuclear accident change people's concerns about the enviro
 author: "Uni Lee"
 date: "3/26/2021"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -21,83 +21,108 @@ library(plm)
 
 ```
 
-# Research question
+# Introduction
 
-- Did Fukushima nuclear accident change people's concerns about the environment? 
+In March 2011, Fukushima-daichi nuclear power plant in Japan exploded to cause a catastrophic damage to the local environment and health of the residents. It was the second largest nuclear explosion in history, following the Chernobyl accident in 1986. This catastrophic event triggered triggered a major policy change in Germany. Three months after the accident, German Chancellor Angela Merkel announced that the oldest nuclear power plants in Germany will be shut down permanently. The German parliament passed a bill that would completely shut-down all German reactors by 2022. This swift change in energy policy was unprecedented and unique in Germany history. Up until Fukushima, parties were divided on the nuclear power issue. However, news of this distant threat made the conservative government took a swift turn in their political stance and align with the liberal parties. How much impact did the Fukushima disaster have on the change in people's concerns about the environment? This research paper analyzes German Socio-Economic Panel (SOEP) data to distill the effect of Fukushima disaster on public views on environmental problems. 
 
-# Hypothesis
+# Theory and hypothesis
 
-The level of worries about the environment increased after the Fukushima accident in 2011. 
+Judging from the increased political support for nuclear phase-out policy after the disaster, it can be hypothesized that Fukushima disaster increased people's concerns about the environment. This hypothesis is supported by Kingdon (1984)'s notion of "three streams of policy change". According to Davidsson (2020), major global disasters like Fukushima opens a window of opportunity for policy change by increasing the sense of urgency and political legitimacy for a policy action. After a major accident, network of actors related to policy-making is strengthened and cross-party collaborations allow them to reach a consensus faster (Davidsson, 2020).
 
-# Methodology
+Empirical studies have supported the hypothesis. Goelbel et. al (2013) have found that the Fukushima disaster significantly increased environmental concerns by 20% in Germany. The finding is consistent when applied to a similar nuclear disaster. Berger (2008) has found that the Chernobyl accident in 1986 increased the probability of person being very worried about the environment increased on average by about 16 percentage points.  
 
-OLS
-Difference-in-difference
-Fixed Effects 
+# Data and Methodology
 
-# Data
+To measure the effect of Fukushima disaster on people's worries about the environment, we will employ Fixed Effects (FE) and difference-in-difference (DiD) approach on German Socio-Economic Panel data (SOEP). For the purpose of this study, we will focus on individuals who took part in both 2010-2011. The analytical sample contains 8,324 person-years and 4,162 persons. 
 
-For this study, we will use the Socio-Economic Panel (SOEP) provided by DIW Berlin. We select data from the years 2010 (one year before the accident) and in 2012 (one year after the accident). 
+FE and DiD models allow us to control for unobserved heterogeneity by taking advantage of the time dimension of the data. The fixed effects model measure the within-individual change in environmental concerns after the accident. Individuals who completed the study before the accident are dropped out of the study. 
 
-Main variables of interest are the following:
+In the difference-in-difference model, all individuals are included in the study. The people who completed the survey before Fukushima are considered the "control" group, since they have not been exposed to the event yet. People who completed the survey after are the "treatment" group. The change in environmental concerns will be compared between the control and treatment group to measure the effect Fukushima, under the assumption of parallel time trends.  
 
-* Dependent variable:
-+ How worried are you about the environment (_plh0036_)?
--- 1: very worried
--- 2: somewhat worried
--- 3: not worried
+Since neither of these models can estimate the coefficients for time-constant variables, results of the data are also compared to Ordinary Least Square regression model to understand the demographic differences. 
 
-* Independent variable: 
-+ Dummy that indicates whether the interview was taken place before or after Fukushima accident (2011).
--- 0: Before the accident 
--- 1: After the accident
-
-+ Demographics: 
-sex (0 = female), 
-fam (0 = single), 
-emp (0 = employed),
-age group (agec), 
-education (Low, medium, high)
-
-+ time-varying individual heterogeneity:
-life satisfaction (0 - 10)
-health (0 - 10)
-
-
-## Data preparation
 
 ```{r}
-soep_raw <- readRDS("data/08_soep/SOEP_2.rds") %>% 
+soep_raw <- readRDS("data/08_soep/SOEP_3.rds") %>% 
   clean_names()
 
 # Filter out valid cases and change factors into numeric values
-soep <- soep_raw %>%
+soep_unbal <- soep_raw %>%
   select(-plh0160) %>%
   filter(plh0036 %in% c(1,2,3),
-         emp %in% c("1-Employment", "2-Unemployment"),
+#         emp %in% c("1-Employment", "2-Unemployment"),
          satis %in% c(0,1,2,3,4,5,6,7,8,9,10),
          health %in% c(0,1,2,3,4,5,6,7,8,9,10),
-         year >= 2008 & year <= 2015) %>%
-  mutate(plh0036 = as.numeric(plh0036),
-         mig = as.factor(ifelse(mig == "1-native", 0, 1)),
+         year >= 2008, year <= 2016,
+         pmonin > 0) %>%
+  mutate(plh0036 = as.factor(plh0036),
+         mig = as.factor(mig),
          sex = as.factor(ifelse(sex == "1-Female", 0, 1)),
          fam = as.factor(ifelse(fam == "1-not married", 0, 1)),
-         emp = as.factor(ifelse(emp == "1-Employment", 0, 1)),
+#         emp = as.factor(ifelse(emp == "1-Employment", 0, 1)),
          satis = as.numeric(satis),
-         health = as.numeric(health)) %>%
-  mutate(agec = as.factor(case_when(
+         health = as.numeric(health),
+         month = as.numeric(pmonin)) %>%
+ mutate(agec = as.factor(case_when(
     agec %in% c("17-19", "20-29") ~ "17-29",
     agec == "30-39" ~ "30-39",
     agec == "40-49" ~ "40-49",
     agec == "50-59" ~ "50-59",
     agec %in% c("60-69", "70+") ~ "60+" 
   ))) %>%
-  mutate(fukushima = ifelse(year > 2011, 1,0)) %>%
-  na.omit()
+  mutate(fukushima = as.factor(case_when(
+#    year <= 2010 ~ 0,
+#    year >= 2011 ~ 1))) %>%
+     year <= 2010 ~ 0,
+     year == 2011 & month < 3 ~ 0,
+     year == 2011 & month >= 3 ~ 1,
+     year >= 2012 ~ 1))) %>%
+#    action = case_when(year == 2010 ~ 0,
+#                       year == 2011 & month < 7 ~ 0,
+#                        year == 2011 & month >= 7 ~ 1),
+#    month = as.factor(month))) %>% 
+   na.omit() 
 
-nrow(soep)          
-length(unique(soep$id))
+
+nrow(soep_unbal)
+length(unique(soep_unbal$id))
+
+# Selecting only 2010-2011
+soep_unbal_1011 <- soep_unbal %>%
+  filter(year %in% c(2010, 2011)) 
+
+
+nrow(soep_unbal_1011)
+length(unique(soep_unbal_1011$id))
+
+
 ```
+
+
+## Variables of Interest 
+
+The dependent variable in this study is the level of people's worries about the environment _(plh0036)_. The SOEP questionnaire includes the following question: *"how worried are you about the environment?"* Respondents rate this question on the scale of three: 
+-- 1: very worried
+-- 2: somewhat worried
+-- 3: not worried
+
+The main independent variable in this study is a dummy variable named _fukushima_ that indicates whether the interview was taken place before or after Fukushima accident.
+-- 0: Before March 2011
+-- 1: After March 2011 (includes March)
+
+The following demographic variables that are taken into consideration for descriptive statistics and OLS regression:
+
+* sex (0 = female), 
+* fam (0 = single), 
+* emp (0 = employed),
+* age group (agec), 
+* education (Low, medium, high)
+
+In addition, we account for the following time-varying individual heterogeneity in the FE and DiD models: 
+
+* life satisfaction (0 - 10)
+* health (0 - 10)
+
 
 # Descriptive Statistics
 
@@ -105,15 +130,16 @@ length(unique(soep$id))
 
 ```{r}
 # For descriptive stats 
-soep_2 <- soep %>%
+soep_time <- soep_raw %>%
+  filter(plh0036 %in% c(1,2,3)) %>%
   group_by(year) %>%
   summarize(mean_concern = mean(plh0036))
 
 
-ggplot(soep_2, aes(x=year, y=mean_concern)) +
+ggplot(soep_time, aes(x=year, y=mean_concern)) +
   geom_line() + geom_vline(xintercept=2011, linetype="dashed", color="red") +
   theme_classic() +
-  labs(title="Change in concerns about the environment 2008-2015",
+  labs(title="Average concerns about the environment 1984-2018",
        y="average concern about the environment") +
   theme(axis.title.x=element_blank(),
         title=element_text(vjust=0.5))
@@ -121,16 +147,25 @@ ggplot(soep_2, aes(x=year, y=mean_concern)) +
 
 ## Demographics
 
-```{r}
-# Summary table
-table1::label(soep$plh0036) <- "E Concerns"
-table1::label(soep$sex) <- "Gender"
-table1::label(soep$mig) <- "Migration status"
-table1::label(soep$emp) <- "Employment status"
-table1::label(soep$fam) <- "Family statis"
-table1::label(soep$edu) <- "Education level"
+```{r include = FALSE}
+# Labels for the summary table
+table1::label(soep_unbal_1011$plh0036) <- "Environmental Concern"
+table1::label(soep_unbal_1011$fukushima) <- "Fukushima"
+table1::label(soep_unbal_1011$sex) <- "Gender"
+table1::label(soep_unbal_1011$mig) <- "Migration status"
+table1::label(soep_unbal_1011$emp) <- "Employment status"
+table1::label(soep_unbal_1011$fam) <- "Family statis"
+table1::label(soep_unbal_1011$edu) <- "Education level"
 
-table1::table1(~plh0036 + sex + mig, data=soep) 
+soep_2010 <- soep_unbal_1011 %>%
+  filter(year==2010)
+
+soep_2011 <- soep_unbal_1011 %>%
+  filter(year==2011)
+
+table1::table1(~plh0036 + fukushima + sex + mig + emp + fam + edu, data=soep_2010) 
+table1::table1(~plh0036 + fukushima + sex + mig + emp + fam + edu, data=soep_2011) 
+
 
 ```
 
@@ -139,10 +174,12 @@ table1::table1(~plh0036 + sex + mig, data=soep)
 For a simple OLS, we regress the score for environmental concerns on Fukushima dummy variable and control for the demographic variables.
 
 ```{r results="asis"}
-ols_1 <- lm(plh0036 ~ fukushima, data=soep)
-ols_2 <- lm(plh0036 ~ fukushima + sex + emp + edu + mig, data=soep)
+soep_unbal_1011$plh0036 <- as.numeric(soep_unbal_1011$plh0036)
 
-stargazer(ols_1, ols_2, type="html", title = "Ordinary Least Squares", header=FALSE)
+ols_1 <- lm(plh0036 ~ fukushima, data=soep_unbal_1011)
+ols_2 <- lm(plh0036 ~ fukushima + sex + emp + edu + mig, data=soep_unbal_1011)
+
+stargazer(ols_1, ols_2, type="latex", title = "Ordinary Least Squares", header=FALSE)
 ```
 
 # Fixed Effects 
@@ -152,10 +189,10 @@ The OLS regression result is likely to be biased because it does not control for
 Therefore, we apply fixed effects method to control for individual differences. 
 
 ```{r results="asis"}
-fe_1 <- plm(plh0036 ~ fukushima, data=soep, index = c("id"), model="within")
-fe_2 <- plm(plh0036 ~ fukushima + fam + emp + satis + health, data=soep, index = "id", model = "within")
+fe_1 <- plm(plh0036 ~ fukushima, data=soep_unbal_1011, index = c("id"), model="within")
+fe_2 <- plm(plh0036 ~ fukushima + satis + health, data=soep_unbal_1011, index = "id", model = "within")
 
-stargazer(fe_1, fe_2, type="html", title ="Fixed Effects", header=FALSE)
+stargazer(fe_1, fe_2, type="latex", title ="Fixed Effects", header=FALSE)
 ```
 
 
@@ -171,29 +208,37 @@ Respondents who interviewed after March : treatment group
 
 ## Data prep for Diff in Diff
 
-Balance the panel data from year 2010, 2011.
-Treat individuals who were interviewed before March as control group,
-Treat individuals who were interviewed after March as treatment group. 
 
 ```{r}
-soep_1 <- soep_raw %>% 
-  select(-satis, -plh0160) %>%
-  filter(year == 2010 | year == 2012) %>% #Filter by year
-  mutate(fukushima = ifelse(year > 2011, 1, 0))  %>% # Create dummy variable for fukushima
-  arrange(id, year) %>% ## Check if the data is balanced 
+# Balance the dataset - get subjects who have done the survey both in 2010 and 2011
+soep_bal_1011 <- soep_unbal_1011 %>%
   group_by(id) %>%
-  mutate(spell=row_number()) %>%
-  mutate(spell_max=max(spell)) %>%
-  filter(spell_max == 2) %>% 
-  select(-spell, -spell_max)
+  mutate(spell=row_number(),
+         max_spell=max(spell)) %>%
+  filter(max_spell==2) %>%
+  ungroup() %>%
+  select(-spell, -max_spell)
 
-# Calculate difference
-soep_dif <- soep %>%
-  group_by(id) %>%
-  mutate(plh0036_lag = lag(plh0036)) %>%
-  mutate(diff_plh0036 = plh0036 - plh0036_lag) %>%
-  filter(year==2012)
+nrow(soep_bal_1011)          
+length(unique(soep_bal_1011$id))
 
+soep_did <- soep_bal_1011 %>% 
+  group_by(id) %>% 
+  mutate(fukushima = as.numeric(fukushima)) %>%
+  mutate(plh0036_lag = dplyr::lag(plh0036),
+         fukushima_lag = dplyr::lag(fukushima)) %>%
+  ungroup() %>%
+  mutate(diff_plh0036 = plh0036 - plh0036_lag,
+         diff_fukushima = fukushima - fukushima_lag)
+
+did <- lm(diff_plh0036 ~ diff_fukushima, data=soep_did)
+stargazer(did, type="latex")
 ```
 
+# References 
 
+M. Berger, 2008. "A Note on the High Stability of Happiness: The Minimal Effects of a Nuclear Catastrophe on Life Satisfaction," Discussion Papers of DIW Berlin 803, DIW Berlin, German Institute for Economic Research.
+
+Goebel, Jan & Krekel, Christian & Tiefenbach, Tim & Ziebarth, Nicolas R., 2013. "Natural Disaster, Policy Action, and Mental Well-Being: The Case of Fukushima," IZA Discussion Papers 7691, Institute of Labor Economics (IZA).
+
+J.W. Kingdon, Agendas, Alternatives, and Public Policies, second ed., Longman, Boston, 2011.
