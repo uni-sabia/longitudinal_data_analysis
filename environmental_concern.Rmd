@@ -33,56 +33,58 @@ Empirical studies have supported the hypothesis. Goelbel et. al (2013) have foun
 
 # Data and Methodology
 
-To measure the effect of Fukushima disaster on people's worries about the environment, we will employ Fixed Effects (FE) and difference-in-difference (DiD) approach on German Socio-Economic Panel data (SOEP). For the purpose of this study, we will focus on individuals who took part in both 2010-2011. The analytical sample contains 8,324 person-years and 4,162 persons. 
+To measure the effect of Fukushima disaster on people's worries about the environment, we will employ Fixed Effects (FE) and difference-in-difference (DiD) approach on German Socio-Economic Panel data (SOEP). For the purpose of this study, we will focus on individuals who took part in both 2010-2011. The analytical sample contains 14,394 person-years and 7,197 persons. 
 
-FE and DiD models allow us to control for unobserved heterogeneity by taking advantage of the time dimension of the data. The fixed effects model measure the within-individual change in environmental concerns after the accident. Individuals who completed the study before the accident are dropped out of the study. 
+FE and DiD models allow us to control for unobserved heterogeneity by taking advantage of the time dimension of the data. The fixed effects model measure the within-individual change in environmental concerns after the accident. Individuals who completed the study before the accident are dropped out of the fixed effects model. 
 
-In the difference-in-difference model, all individuals are included in the study. The people who completed the survey before Fukushima are considered the "control" group, since they have not been exposed to the event yet. People who completed the survey after are the "treatment" group. The change in environmental concerns will be compared between the control and treatment group to measure the effect Fukushima, under the assumption of parallel time trends.  
+In the difference-in-difference model, all individuals are included in the study. The people who completed the survey before Fukushima are considered the "control" group, since they have not been exposed to the event yet. People who completed the survey after are the "treatment" group. The change in environmental concerns will be compared between the control and treatment group to measure the effect Fukushima, under the assumption of parallel time trends. This approach has been adopted from Goebel et al (2013). 
 
 Since neither of these models can estimate the coefficients for time-constant variables, results of the data are also compared to Ordinary Least Square regression model to understand the demographic differences. 
 
 
 ```{r}
-soep_raw <- readRDS("data/08_soep/SOEP_3.rds") %>% 
+soep_raw <- readRDS("data/08_soep/SOEP_4.rds") %>% 
   clean_names()
 
 # Filter out valid cases and change factors into numeric values
 soep_unbal <- soep_raw %>%
   select(-plh0160) %>%
   filter(plh0036 %in% c(1,2,3),
-#         emp %in% c("1-Employment", "2-Unemployment"),
+         edu %in% c("2-medium", "1-low", "3-high"),
+         emp %in% c("1-Employment", "2-Unemployment", "3-Education", "Not working"),
          satis %in% c(0,1,2,3,4,5,6,7,8,9,10),
          health %in% c(0,1,2,3,4,5,6,7,8,9,10),
          year >= 2008, year <= 2016,
          pmonin > 0) %>%
-  mutate(plh0036 = as.factor(plh0036),
+  mutate(plh0036 = as.integer(plh0036),
          mig = as.factor(mig),
-         sex = as.factor(ifelse(sex == "1-Female", 0, 1)),
-         fam = as.factor(ifelse(fam == "1-not married", 0, 1)),
-#         emp = as.factor(ifelse(emp == "1-Employment", 0, 1)),
+         sex = as.factor(sex),
+         emp = as.character(emp),
+         fam = as.factor(fam),
          satis = as.numeric(satis),
          health = as.numeric(health),
          month = as.numeric(pmonin)) %>%
- mutate(agec = as.factor(case_when(
-    agec %in% c("17-19", "20-29") ~ "17-29",
-    agec == "30-39" ~ "30-39",
-    agec == "40-49" ~ "40-49",
-    agec == "50-59" ~ "50-59",
-    agec %in% c("60-69", "70+") ~ "60+" 
+ mutate(plh0036 = as.factor(case_when(
+          plh0036 == 1 ~ 3, # Make 3 as "most worried"
+          plh0036 == 2 ~ 2,
+          plh0036 == 3 ~ 1)), # Make 1 as "least worried"
+        emp = as.factor(case_when(
+          emp == "1-Employment" ~ emp,
+          emp == "2-Unemployment" ~ emp,
+          emp %in% c("3-Education", "Not working") ~ "3-Non-working")),
+        agec = as.factor(case_when(
+          agec %in% c("17-19", "20-29") ~ "17-29",
+          agec == "30-39" ~ "30-39",
+          agec == "40-49" ~ "40-49",
+          agec == "50-59" ~ "50-59",
+          agec %in% c("60-69", "70+") ~ "60+" 
   ))) %>%
   mutate(fukushima = as.factor(case_when(
-#    year <= 2010 ~ 0,
-#    year >= 2011 ~ 1))) %>%
      year <= 2010 ~ 0,
      year == 2011 & month < 3 ~ 0,
      year == 2011 & month >= 3 ~ 1,
      year >= 2012 ~ 1))) %>%
-#    action = case_when(year == 2010 ~ 0,
-#                       year == 2011 & month < 7 ~ 0,
-#                        year == 2011 & month >= 7 ~ 1),
-#    month = as.factor(month))) %>% 
    na.omit() 
-
 
 nrow(soep_unbal)
 length(unique(soep_unbal$id))
@@ -91,10 +93,21 @@ length(unique(soep_unbal$id))
 soep_unbal_1011 <- soep_unbal %>%
   filter(year %in% c(2010, 2011)) 
 
-
 nrow(soep_unbal_1011)
 length(unique(soep_unbal_1011$id))
 
+# Balance the dataset - get subjects who have done the survey both in 2010 and 2011
+soep_bal_1011 <- soep_unbal_1011 %>%
+  group_by(id) %>%
+  mutate(spell=row_number(),
+         max_spell=max(spell)) %>%
+  filter(max_spell==2) %>%
+  ungroup() %>%
+  select(-spell, -max_spell) %>%
+  mutate(plh0036 = as.numeric(plh0036))
+
+nrow(soep_bal_1011)          
+length(unique(soep_bal_1011$id))
 
 ```
 
@@ -112,9 +125,9 @@ The main independent variable in this study is a dummy variable named _fukushima
 
 The following demographic variables that are taken into consideration for descriptive statistics and OLS regression:
 
-* sex (0 = female), 
-* fam (0 = single), 
-* emp (0 = employed),
+* sex: 1-Female 2-Male 
+* fam: 1-not married, 2-married
+* emp: 1-Employment, 2-Unemployment, 3-Education or not working       
 * age group (agec), 
 * education (Low, medium, high)
 
@@ -149,18 +162,18 @@ ggplot(soep_time, aes(x=year, y=mean_concern)) +
 
 ```{r include = FALSE}
 # Labels for the summary table
-table1::label(soep_unbal_1011$plh0036) <- "Environmental Concern"
-table1::label(soep_unbal_1011$fukushima) <- "Fukushima"
-table1::label(soep_unbal_1011$sex) <- "Gender"
-table1::label(soep_unbal_1011$mig) <- "Migration status"
-table1::label(soep_unbal_1011$emp) <- "Employment status"
-table1::label(soep_unbal_1011$fam) <- "Family statis"
-table1::label(soep_unbal_1011$edu) <- "Education level"
+table1::label(soep_bal_1011$plh0036) <- "Environmental Concern"
+table1::label(soep_bal_1011$fukushima) <- "Fukushima"
+table1::label(soep_bal_1011$sex) <- "Gender"
+table1::label(soep_bal_1011$mig) <- "Migration status"
+table1::label(soep_bal_1011$emp) <- "Employment status"
+table1::label(soep_bal_1011$fam) <- "Family statis"
+table1::label(soep_bal_1011$edu) <- "Education level"
 
-soep_2010 <- soep_unbal_1011 %>%
+soep_2010 <- soep_bal_1011 %>%
   filter(year==2010)
 
-soep_2011 <- soep_unbal_1011 %>%
+soep_2011 <- soep_bal_1011 %>%
   filter(year==2011)
 
 table1::table1(~plh0036 + fukushima + sex + mig + emp + fam + edu, data=soep_2010) 
@@ -171,26 +184,28 @@ table1::table1(~plh0036 + fukushima + sex + mig + emp + fam + edu, data=soep_201
 
 # Ordinary Least Squares
 
-For a simple OLS, we regress the score for environmental concerns on Fukushima dummy variable and control for the demographic variables.
+For a simple OLS, we regress the score for environmental concerns on Fukushima dummy variable and control for the demographic variables. The regression results show that Fukushima increased worries about the environment by 0.040-0.042 (1.4%). This result is statistically significant, but not substantial. The models also show that men are generally less worried than women. In terms of the age group, people in their 40s and 50s are most worried in comparison to other age groups. Higher education leads to higher level of environmental concerns. Since the coefficients of employment and migration background are neither statistically significant nor substantial, it can be concluded that they have minimal impact. 
+
+The OLS regression results are likely to be biased because it does not control for unobserved individual differences that can affect the change in concerns for the environment. For example, respondents' political views and personal traits that make them more sensitive to global threats are not controlled for.
 
 ```{r results="asis"}
-soep_unbal_1011$plh0036 <- as.numeric(soep_unbal_1011$plh0036)
+soep_bal_1011$plh0036 <- as.numeric(soep_bal_1011$plh0036)
 
-ols_1 <- lm(plh0036 ~ fukushima, data=soep_unbal_1011)
-ols_2 <- lm(plh0036 ~ fukushima + sex + emp + edu + mig, data=soep_unbal_1011)
+ols_1 <- lm(plh0036 ~ fukushima, data=soep_bal_1011)
+ols_2 <- lm(plh0036 ~ fukushima + sex + agec + emp + edu + mig, data=soep_bal_1011)
 
 stargazer(ols_1, ols_2, type="latex", title = "Ordinary Least Squares", header=FALSE)
 ```
 
 # Fixed Effects 
 
-The OLS regression result is likely to be biased because it does not control for unobserved individual differences that can affect the change in concerns for the environment. For example, respondents' political views and personal traits that make them more sensitive to global threats are not controlled for.
+In fixed effects model, the effect of unobserved individual heterogeneity cancels out, giving more unbiased results. This model yields a similar result, but the magnitude of the impact is smaller than the OLS: Fukushima changed increased environmental concerns by 0.036 (1.2%). This model is still limited because there may be other external events that canceled out the effect of Fukushima, such as the announcement of nuclear phase-out policy (Goebel et al., 2013). 
 
-Therefore, we apply fixed effects method to control for individual differences. 
+Since there is not much time-variance in variables that measure life satisfaction and health, their effects cannot be properly assessed. 
 
 ```{r results="asis"}
-fe_1 <- plm(plh0036 ~ fukushima, data=soep_unbal_1011, index = c("id"), model="within")
-fe_2 <- plm(plh0036 ~ fukushima + satis + health, data=soep_unbal_1011, index = "id", model = "within")
+fe_1 <- plm(plh0036 ~ fukushima, data=soep_bal_1011, index = c("id"), model="within")
+fe_2 <- plm(plh0036 ~ fukushima + satis + health, data=soep_bal_1011, index = "id", model = "within")
 
 stargazer(fe_1, fe_2, type="latex", title ="Fixed Effects", header=FALSE)
 ```
@@ -198,30 +213,13 @@ stargazer(fe_1, fe_2, type="latex", title ="Fixed Effects", header=FALSE)
 
 # Difference in Difference
 
-The OLS regression is likely to be biased because it does not control for time-varying individual heterogeneity. 
-
-Can we apply diff-in-diff approach here?
-Yes, but only as long as we have data on the month in which the interview took place. 
-Respondents who interviewed before March : control group
-Respondents who interviewed after March : treatment group 
+In 
 
 
 ## Data prep for Diff in Diff
 
 
-```{r}
-# Balance the dataset - get subjects who have done the survey both in 2010 and 2011
-soep_bal_1011 <- soep_unbal_1011 %>%
-  group_by(id) %>%
-  mutate(spell=row_number(),
-         max_spell=max(spell)) %>%
-  filter(max_spell==2) %>%
-  ungroup() %>%
-  select(-spell, -max_spell)
-
-nrow(soep_bal_1011)          
-length(unique(soep_bal_1011$id))
-
+```{r results='asis'}
 soep_did <- soep_bal_1011 %>% 
   group_by(id) %>% 
   mutate(fukushima = as.numeric(fukushima)) %>%
@@ -232,13 +230,14 @@ soep_did <- soep_bal_1011 %>%
          diff_fukushima = fukushima - fukushima_lag)
 
 did <- lm(diff_plh0036 ~ diff_fukushima, data=soep_did)
-stargazer(did, type="latex")
+stargazer(did, type="latex", title ="Differenc in Difference", header=FALSE)
 ```
+
 
 # References 
 
-M. Berger, 2008. "A Note on the High Stability of Happiness: The Minimal Effects of a Nuclear Catastrophe on Life Satisfaction," Discussion Papers of DIW Berlin 803, DIW Berlin, German Institute for Economic Research.
+Berger, E. M. (2008). A Note on the High Stability of Happiness: The Minimal Effects of a Nuclear Catastrophe on Life Satisfaction. SSRN Electronic Journal. https://doi.org/10.2139/ssrn.1143830 
 
-Goebel, Jan & Krekel, Christian & Tiefenbach, Tim & Ziebarth, Nicolas R., 2013. "Natural Disaster, Policy Action, and Mental Well-Being: The Case of Fukushima," IZA Discussion Papers 7691, Institute of Labor Economics (IZA).
+Goebel, Krekel, Tiefenbach, Ziebarth. (2013). "Natural Disaster, Policy Action, and Mental Well-Being: The Case of Fukushima," IZA Discussion Papers 7691, Institute of Labor Economics (IZA).
 
-J.W. Kingdon, Agendas, Alternatives, and Public Policies, second ed., Longman, Boston, 2011.
+Kingdon, J. W. (2011). Agendas, alternatives, and public policies. Boston: Longman.
