@@ -78,12 +78,17 @@ soep_unbal <- soep_raw %>%
           agec == "40-49" ~ "40-49",
           agec == "50-59" ~ "50-59",
           agec %in% c("60-69", "70+") ~ "60+" 
-  ))) %>%
+  ))) %>% # Create dummy variables (main independent variables)
   mutate(fukushima = as.factor(case_when(
-     year <= 2010 ~ 0,
-     year == 2011 & month < 3 ~ 0,
-     year == 2011 & month >= 3 ~ 1,
-     year >= 2012 ~ 1))) %>%
+       year <= 2010 ~ 0,
+       year == 2011 & month <= 3 ~ 0, 
+       year == 2011 & month >= 3 ~ 1, # Fukushima in March, 11
+       year >= 2012 ~ 1)),
+     policy = as.factor(case_when(
+       year <= 2010 ~ 0,
+       year == 2011 & month <= 6 ~ 0,
+       year == 2011 & month > 6 ~ 1,
+       year >= 2012 ~ 1))) %>%
    na.omit() 
 
 nrow(soep_unbal)
@@ -167,7 +172,7 @@ table1::label(soep_bal_1011$fukushima) <- "Fukushima"
 table1::label(soep_bal_1011$sex) <- "Gender"
 table1::label(soep_bal_1011$mig) <- "Migration status"
 table1::label(soep_bal_1011$emp) <- "Employment status"
-table1::label(soep_bal_1011$fam) <- "Family statis"
+table1::label(soep_bal_1011$fam) <- "Family status"
 table1::label(soep_bal_1011$edu) <- "Education level"
 
 soep_2010 <- soep_bal_1011 %>%
@@ -192,9 +197,11 @@ The OLS regression results are likely to be biased because it does not control f
 soep_bal_1011$plh0036 <- as.numeric(soep_bal_1011$plh0036)
 
 ols_1 <- lm(plh0036 ~ fukushima, data=soep_bal_1011)
-ols_2 <- lm(plh0036 ~ fukushima + sex + agec + emp + edu + mig, data=soep_bal_1011)
+ols_2 <- lm(plh0036 ~ fukushima + sex + fam + agec + emp + edu + mig, data=soep_bal_1011)
+ols_3 <- lm(plh0036 ~ fukushima + sex + fam + agec + emp + edu + mig, data=soep_bal_1011)
+ols_4 <- lm(plh0036 ~ fukushima + policy + sex + fam + agec + emp + edu + mig, data=soep_bal_1011)
 
-stargazer(ols_1, ols_2, type="latex", title = "Ordinary Least Squares", header=FALSE)
+stargazer(ols_1, ols_2, ols_3, ols_4, type="text", title = "Ordinary Least Squares", header=FALSE)
 ```
 
 # Fixed Effects 
@@ -205,9 +212,9 @@ Since there is not much time-variance in variables that measure life satisfactio
 
 ```{r results="asis"}
 fe_1 <- plm(plh0036 ~ fukushima, data=soep_bal_1011, index = c("id"), model="within")
-fe_2 <- plm(plh0036 ~ fukushima + satis + health, data=soep_bal_1011, index = "id", model = "within")
+fe_2 <- plm(plh0036 ~ fukushima + policy, data=soep_bal_1011, index = "id", model = "within")
 
-stargazer(fe_1, fe_2, type="latex", title ="Fixed Effects", header=FALSE)
+stargazer(fe_1, fe_2, type="text", title ="Fixed Effects", header=FALSE)
 ```
 
 
@@ -222,15 +229,20 @@ In
 ```{r results='asis'}
 soep_did <- soep_bal_1011 %>% 
   group_by(id) %>% 
-  mutate(fukushima = as.numeric(fukushima)) %>%
+  mutate(fukushima = as.numeric(fukushima),
+         policy = as.numeric(policy)) %>%
   mutate(plh0036_lag = dplyr::lag(plh0036),
-         fukushima_lag = dplyr::lag(fukushima)) %>%
+         fukushima_lag = dplyr::lag(fukushima),
+         policy_lag = dplyr::lag(policy)) %>%
   ungroup() %>%
   mutate(diff_plh0036 = plh0036 - plh0036_lag,
-         diff_fukushima = fukushima - fukushima_lag)
+         diff_fukushima = fukushima - fukushima_lag,
+         diff_policy = policy - policy_lag)
 
 did <- lm(diff_plh0036 ~ diff_fukushima, data=soep_did)
-stargazer(did, type="latex", title ="Differenc in Difference", header=FALSE)
+did_2 <- lm(diff_plh0036 ~ diff_fukushima + diff_policy, data=soep_did)
+stargazer(did, did_2, type="text", title ="Differenc in Difference", header=FALSE)
+
 ```
 
 
