@@ -1,10 +1,12 @@
 ---
-title: "Did Fukushima nuclear accident change people's concerns about the environment?"
+title: "Did the Fukushima nuclear disaster change people's concerns about the environment?"
+subtitle: "Quantifying the effect of global natural disaster on public opinion and implications for policy change"
 author: "Uni Lee"
-date: "3/26/2021"
+date: "08/04/2021"
+abstract: "This study explains how the Fukushima nuclear disaster in Japan triggered a sudden policy change in Germany. Based on Kingdon’s three streams model, it is hypothesized that the Fukushima disaster increased environmental concerns to open a window of opportunity for introducing a nuclear phase-out policy. Analysis of Germany’s Socioeconomic Panel (SOEP) data using pooled OLS regression and fixed effects methods on a linear probability model affirmed the hypothesis. The Fukushima disaster significantly increased the probability of being “very worried” about the environment by 2.5 percentage points. Further, the analysis finds that women are more likely to be worried than men. Having a higher education and unemployment increases the probability of being very worried. People in their 40s and 50s are most likely to be worried, while those aged 17-29 are least worried. No evidence that being married increases the probability of being very concerned about the environment was found. The interaction effect between gender and family status was not statistically significant. The findings imply that global natural disasters, whose frequencies are increasing due to climate change, can also be seen as an opportunity for a policy change. It is recommended that policy-makers quickly respond to global disasters by administering structural policy changes that can address the root cause of the disaster."
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -18,52 +20,77 @@ library(table1)
 library(stringr)
 library(stargazer)
 library(plm)
-
+library(labelled)
+library(gt)
 ```
 
 # Introduction
 
-In March 2011, Fukushima-daichi nuclear power plant in Japan exploded to cause a catastrophic damage to the local environment and health of the residents. It was the second largest nuclear explosion in history, following the Chernobyl accident in 1986. This catastrophic event triggered triggered a major policy change in Germany. Three months after the accident, German Chancellor Angela Merkel announced that the oldest nuclear power plants in Germany will be shut down permanently. The German parliament passed a bill that would completely shut-down all German reactors by 2022. This swift change in energy policy was unprecedented and unique in Germany history. Up until Fukushima, parties were divided on the nuclear power issue. However, news of this distant threat made the conservative government took a swift turn in their political stance and align with the liberal parties. How much impact did the Fukushima disaster have on the change in people's concerns about the environment? This research paper analyzes German Socio-Economic Panel (SOEP) data to distill the effect of Fukushima disaster on public views on environmental problems. 
-
-# Theory and hypothesis
-
-Judging from the increased political support for nuclear phase-out policy after the disaster, it can be hypothesized that Fukushima disaster increased people's concerns about the environment. This hypothesis is supported by Kingdon (1984)'s notion of "three streams of policy change". According to Davidsson (2020), major global disasters like Fukushima opens a window of opportunity for policy change by increasing the sense of urgency and political legitimacy for a policy action. After a major accident, network of actors related to policy-making is strengthened and cross-party collaborations allow them to reach a consensus faster (Davidsson, 2020).
-
-Empirical studies have supported the hypothesis. Goelbel et. al (2013) have found that the Fukushima disaster significantly increased environmental concerns by 20% in Germany. The finding is consistent when applied to a similar nuclear disaster. Berger (2008) has found that the Chernobyl accident in 1986 increased the probability of person being very worried about the environment increased on average by about 16 percentage points.  
-
-# Data and Methodology
-
-To measure the effect of Fukushima disaster on people's worries about the environment, we will employ Fixed Effects (FE) and difference-in-difference (DiD) approach on German Socio-Economic Panel data (SOEP). For the purpose of this study, we will focus on individuals who took part in both 2010-2011. The analytical sample contains 14,394 person-years and 7,197 persons. 
-
-FE and DiD models allow us to control for unobserved heterogeneity by taking advantage of the time dimension of the data. The fixed effects model measure the within-individual change in environmental concerns after the accident. Individuals who completed the study before the accident are dropped out of the fixed effects model. 
-
-In the difference-in-difference model, all individuals are included in the study. The people who completed the survey before Fukushima are considered the "control" group, since they have not been exposed to the event yet. People who completed the survey after are the "treatment" group. The change in environmental concerns will be compared between the control and treatment group to measure the effect Fukushima, under the assumption of parallel time trends. This approach has been adopted from Goebel et al (2013). 
-
-Since neither of these models can estimate the coefficients for time-constant variables, results of the data are also compared to Ordinary Least Square regression model to understand the demographic differences. 
+In March 2011, Fukushima Daichi nuclear power plant in Japan exploded, causing catastrophic damage to the environment and residents’ health. It was the second-largest nuclear explosion in history after the Chernobyl accident in 1986. The disaster in Japan triggered a major policy in another country halfway across the globe: Germany. Three days after the accident, the German government shut down seven of the oldest nuclear reactors in Germany. Three months later, the German parliament passed a bill that would completely shut down all German reactors by 2022. This swift change in energy policy was remarkable because the conservative government was not in favor of phasing out nuclear power until then. The Fukushima disaster quickly built a social consensus on the nuclear power issue, making it a bipartisan policy agenda. This is a case worth studying, for it can provide empirical evidence for theories of policy change. This paper examines theoretical mechanisms of the policy change and attempts to quantify the effect of the Fukushima disaster on public views on environmental problems in Germany. The findings of this research provide an insight into how policy-makers can turn such crises into an opportunity to push for changes in climate policy.
 
 
-```{r}
+# Theory and Hypothesis
+
+One of the most cited theories of policy change is Kingdon (1984)’s “streams'' model. Kingdon’s model, as illustrated in Figure 1, suggests that when three independent streams of social problem, politics, and policies intersect, a window of opportunity for policy change opens. Reflecting on this model, the Fukushima disaster channeled public attention to the environmental problem associated with nuclear power and built a social consensus that the problem needs to be addressed through policy. In the stream of politics, Germany’s grassroots movement for nuclear phase-out had been growing since the 1970s, gaining momentum after the explosion of the Chernobyl reactor in 1986. The Green Party in Germany has been advocating for energy policies centered on renewable energy and nuclear phase-out. This formed the basis for the stream of policy. As the Fukushima disaster brought the three streams to come together, an abrupt change in energy policy was possible: the announcement of a permanent nuclear phase-out by 2022. 
+
+![Figure 1. Theoretical analysis of the effect of Fukushima on policy change based on Kindon (1984)](figures/final_figure1.png)
+In line with the logic of this model, it can be hypothesized that the Fukushima disaster increased people's concerns about the environment in Germany. Davidsson (2020) adds that major global disasters like Fukushima increase the sense of urgency and awareness of the social problem, which makes a policy action politically legitimate.
+
+Further, gender role theory implies that women, who are socialized to be caretakers and nurturers, are more worried about the environment because of the negative consequences on their children (Mohai, 1997).  Eklhom (2017) suggests that parenthood increases environmental concerns because they face numerous worries about risks that are out of their control. Therefore, it is expected that married women are more worried than unmarried women because marriage increases the probability of experiencing parenthood. Lastly, education is commonly understood as a solution to raise awareness of environmental issues (Edsand and Broich, 2020). Thus, having a higher level of education would increase concerns about the environment. To summarize, this paper aims to test the following hypotheses:
+
+*H1*: Fukushima disaster increased people's concerns about the environment in Germany. 
+*H2*: Women are more affected by the Fukushima disaster than men. 
+*H3*: The effect of gender depends on the family status. The effect of Fukushima is higher for married women than single women. 
+*H4*: People with higher education have higher concerns about the environment.
+
+Goebel et al. (2015) have found that the Fukushima disaster significantly increased environmental concerns in Germany. The finding is consistent when applied to a similar nuclear disaster. Berger (2008) has found that the Chernobyl accident in 1986 increased the probability of a person being very worried about the environment increased on average by about 16 percentage points. Studies have shown that females and highly educated people are more concerned about the environment (Goebel et al., 2015), affirming H1 and H4. Mohai (1997) and Eklhom (2017)’s findings support H3, which found gender differences and an interaction effect between gender and parenthood.
+
+# Data and Analytical Sample
+
+This research examines German Socio-Economic Panel (SOEP) data to analyze the effect of Fukushima on people’s environmental concerns. SOEP is a panel study that began in 1984 on the topics of demographics, education, labor, health, well-being, and social concerns.
+
+## Analytical Sample
+
+To capture the immediate effect of the Fukushima disaster on environmental concerns, this study focuses on the years 2010-2011, one year before Fukushima, and the year of the accident. The original dataset contains 27,577 person-years and 17,009 persons. After eliminating invalid and missing values in main observables, the final analytical sample came down to 22,807 person-years and 15,563 persons. Note that this dataset is not balanced. About 46% of the subjects included in the analytical sample completed the survey in both years. 
+
+## Dependent variables: environmental concerns, fukushima and demographic covariates
+
+The SOEP questionnaire includes the question: “How worried are you about the environment?” Respondents rate this question on a scale of three: 1- Not worried, 2-somewhat worried, 3-very worried. This variable is recoded into a binary dummy variable (“worry”) to be used as the main dependent variable. It takes 0 when the individual is either “not worried” or “worried”, and 1 if the individual is “very worried”. 
+
+The main independent variable in this study is a dummy variable named “fukushima”. It takes 0 if the interview was conducted before March 2011, and 1 if it was done after March 2011 (including March). Individuals whose value of the Fukushima variable is 0 are in the control group because their survey was done in the same year without having experienced the event. Individuals whose Fukushima variable takes 1 are in the treatment group because their survey reflects the effect of having experienced the Fukushima disaster.
+
+To test H2, H3, and H4, gender (1-Female 2-Male), family status (1-not married, 2-married), and education (1-Low, 2-medium, 3-high) are included in regression models. Further, it is logical to assume that unemployment decreases environmental concerns because the unemployed tend to prioritize immediate financial concerns. It is also expected that a person’s age plays a role in environmental concerns because of change in values and perceptiveness to social problems. To control for these confounding factors, employment status (1-Employment, 2-Unemployment, 3-Education or not working) and age group (17-29, 30-39, 40-49, 50-59, 60+) are included.
+
+
+## Sample Statistics
+
+Table 1 summarizes the demographic breakdown of the analytical sample. About 30% of the survey respondents are “very worried” about the environment. 53.6% of the sample are female, 46.4% male. 61.3% of the sample are married. 11.3% of the sample has low education, 58.9% medium-level and 29.9% high-level education. 58.2% of the people are in employment, while 37.2% are not looking for employment. Only 4.6% are unemployed and looking for work. The sample includes non-citizen residents (migrants), which take up 14.5% of the sample. People over 60 take up the largest proportion in the sample (27.6%), while people aged between 17 to 29 have the smallest share (14.8%). 
+
+Table 2 displays the number of subjects in 2011, divided into two groups: those who completed the survey before and those who took the survey after Fukushima (March 11). About 50% of the individuals (N=5,135) took the survey after the Fukushima disaster. 
+
+```{r include=FALSE}
 soep_raw <- readRDS("data/08_soep/SOEP_4.rds") %>% 
   clean_names()
+# Original number of subjects 
+original <- soep_raw %>% filter(year %in% c(2010, 2011))
+nrow(original)
+length(unique(original$id))
 
 # Filter out valid cases and change factors into numeric values
 soep_unbal <- soep_raw %>%
-  select(-plh0160) %>%
+  select(-plh0160, -health, -satis) %>%
   filter(plh0036 %in% c(1,2,3),
          edu %in% c("2-medium", "1-low", "3-high"),
          emp %in% c("1-Employment", "2-Unemployment", "3-Education", "Not working"),
-         satis %in% c(0,1,2,3,4,5,6,7,8,9,10),
-         health %in% c(0,1,2,3,4,5,6,7,8,9,10),
-         year >= 2008, year <= 2016,
+         year %in% c(2010,2011),
          pmonin > 0) %>%
   mutate(plh0036 = as.integer(plh0036),
          mig = as.factor(mig),
          sex = as.factor(sex),
          emp = as.character(emp),
          fam = as.factor(fam),
-         satis = as.numeric(satis),
-         health = as.numeric(health),
-         month = as.numeric(pmonin)) %>%
+         month = as.numeric(pmonin),
+         edu = factor(edu, levels=c("1-low", "2-medium", "3-high"))) %>%
  mutate(plh0036 = as.factor(case_when(
           plh0036 == 1 ~ 3, # Make 3 as "most worried"
           plh0036 == 2 ~ 2,
@@ -83,26 +110,17 @@ soep_unbal <- soep_raw %>%
        year <= 2010 ~ 0,
        year == 2011 & month <= 3 ~ 0, 
        year == 2011 & month >= 3 ~ 1, # Fukushima in March, 11
-       year >= 2012 ~ 1)),
-     policy = as.factor(case_when(
-       year <= 2010 ~ 0,
-       year == 2011 & month <= 6 ~ 0,
-       year == 2011 & month > 6 ~ 1,
        year >= 2012 ~ 1))) %>%
-   na.omit() 
+  mutate(worry = as.factor(ifelse( 
+    plh0036 %in% c(1,2), 0, 1))) %>% # Recode the dependent variable into a binary dummy
+   na.omit() %>%
+  unlabelled()
 
 nrow(soep_unbal)
 length(unique(soep_unbal$id))
 
-# Selecting only 2010-2011
-soep_unbal_1011 <- soep_unbal %>%
-  filter(year %in% c(2010, 2011)) 
-
-nrow(soep_unbal_1011)
-length(unique(soep_unbal_1011$id))
-
-# Balance the dataset - get subjects who have done the survey both in 2010 and 2011
-soep_bal_1011 <- soep_unbal_1011 %>%
+# check for the number of people who have done the survey both in 2010 and 2011
+soep_bal_1011 <- soep_unbal %>%
   group_by(id) %>%
   mutate(spell=row_number(),
          max_spell=max(spell)) %>%
@@ -114,142 +132,142 @@ soep_bal_1011 <- soep_unbal_1011 %>%
 nrow(soep_bal_1011)          
 length(unique(soep_bal_1011$id))
 
+# What percentage of people completed the survey both years? 
+length(unique(soep_bal_1011$id))/length(unique(soep_unbal$id))
+
+
 ```
 
-
-## Variables of Interest 
-
-The dependent variable in this study is the level of people's worries about the environment _(plh0036)_. The SOEP questionnaire includes the following question: *"how worried are you about the environment?"* Respondents rate this question on the scale of three: 
--- 1: very worried
--- 2: somewhat worried
--- 3: not worried
-
-The main independent variable in this study is a dummy variable named _fukushima_ that indicates whether the interview was taken place before or after Fukushima accident.
--- 0: Before March 2011
--- 1: After March 2011 (includes March)
-
-The following demographic variables that are taken into consideration for descriptive statistics and OLS regression:
-
-* sex: 1-Female 2-Male 
-* fam: 1-not married, 2-married
-* emp: 1-Employment, 2-Unemployment, 3-Education or not working       
-* age group (agec), 
-* education (Low, medium, high)
-
-In addition, we account for the following time-varying individual heterogeneity in the FE and DiD models: 
-
-* life satisfaction (0 - 10)
-* health (0 - 10)
-
-
-# Descriptive Statistics
-
-## How people's concerns about the environment changes over time
+## Sample staistics
 
 ```{r}
-# For descriptive stats 
-soep_time <- soep_raw %>%
-  filter(plh0036 %in% c(1,2,3)) %>%
-  group_by(year) %>%
-  summarize(mean_concern = mean(plh0036))
-
-
-ggplot(soep_time, aes(x=year, y=mean_concern)) +
-  geom_line() + geom_vline(xintercept=2011, linetype="dashed", color="red") +
-  theme_classic() +
-  labs(title="Average concerns about the environment 1984-2018",
-       y="average concern about the environment") +
-  theme(axis.title.x=element_blank(),
-        title=element_text(vjust=0.5))
-```
-
-## Demographics
-
-```{r include = FALSE}
+# Demographic stats
 # Labels for the summary table
-table1::label(soep_bal_1011$plh0036) <- "Environmental Concern"
-table1::label(soep_bal_1011$fukushima) <- "Fukushima"
-table1::label(soep_bal_1011$sex) <- "Gender"
-table1::label(soep_bal_1011$mig) <- "Migration status"
-table1::label(soep_bal_1011$emp) <- "Employment status"
-table1::label(soep_bal_1011$fam) <- "Family status"
-table1::label(soep_bal_1011$edu) <- "Education level"
+table1::label(soep_unbal$worry) <- "Environmental Concern"
+table1::label(soep_unbal$fukushima) <- "Fukushima"
+table1::label(soep_unbal$sex) <- "Gender"
+table1::label(soep_unbal$mig) <- "Migration status"
+table1::label(soep_unbal$emp) <- "Employment status"
+table1::label(soep_unbal$fam) <- "Family status"
+table1::label(soep_unbal$edu) <- "Education level"
+table1::label(soep_unbal$agec) <- "Age group"
 
-soep_2010 <- soep_bal_1011 %>%
-  filter(year==2010)
 
-soep_2011 <- soep_bal_1011 %>%
-  filter(year==2011)
-
-table1::table1(~plh0036 + fukushima + sex + mig + emp + fam + edu, data=soep_2010) 
-table1::table1(~plh0036 + fukushima + sex + mig + emp + fam + edu, data=soep_2011) 
-
+table1::table1(~worry + sex + mig + emp + fam + edu + agec, data=soep_unbal) 
 
 ```
 
-# Ordinary Least Squares
+```{r}
 
-For a simple OLS, we regress the score for environmental concerns on Fukushima dummy variable and control for the demographic variables. The regression results show that Fukushima increased worries about the environment by 0.040-0.042 (1.4%). This result is statistically significant, but not substantial. The models also show that men are generally less worried than women. In terms of the age group, people in their 40s and 50s are most worried in comparison to other age groups. Higher education leads to higher level of environmental concerns. Since the coefficients of employment and migration background are neither statistically significant nor substantial, it can be concluded that they have minimal impact. 
+# Share of people who experienced the event vs. not
+share <- soep_unbal %>% 
+  filter(year==2011) %>% group_by(fukushima) %>%
+  summarize(freq=n()) %>%
+  mutate(share=round(freq/sum(freq)*100,2))
 
-The OLS regression results are likely to be biased because it does not control for unobserved individual differences that can affect the change in concerns for the environment. For example, respondents' political views and personal traits that make them more sensitive to global threats are not controlled for.
+gt(share) %>%
+  tab_header(title="Table 2. Number of subjects who completed the survey before and after Fukushima") %>%  cols_label(fukushima = "Fukushima",
+             freq = "Number of subjects",
+             share = "Share (%)")
+  
+```
+
+## Analytical Methods
+
+To test the hypotheses, linear probability models were employed using Ordinary Least Squares (OLS) and fixed-effects (FE) methods. That is, the dependent variable “worry” is a binary dummy variable whose regression coefficient can then be interpreted in terms of the change in the probability of being not worried or worried (0) or very worried (1).
+
+There are three variations in the OLS regression. Model 1 provides the baseline coefficient. Model 2 is further refined by controlling gender, family status, education, employment and age group. Model 3 considers the interaction effect between gender and marital status. 
+
+While OLS models can estimate group differences, they cannot address omitted variable bias because unobserved within-person heterogeneities are not taken into consideration. For example, individual political views, risk-averse personality, and sensitivity to external threats are time-constant personal traits that cannot be controlled in this model. 
+
+To overcome the limitation of the OLS models, this study further employs a fixed-effects (FE) method on the linear probability regression model. FE captures within-person change in environmental concerns before and after Fukushima by regressing on the demeaned value of the binary dependent variable. In other words, the coefficient of the FE model captures how much the environmental concern had changed from the individual mean after the Fukushima accident. In doing so, the FE model cancels out time-constant differences among individuals. Subjects who have not experienced the accident are dropped out of the study. 
+
+
+# Results
+
+## Descriptive results
+
+Graph 1 shows the distribution of the level of environmental concerns (1=Very worried, 2= not worried or worried) before and after the Fukushima disaster. The share of people who are “not worried or worried” about the environment decreased from 70.4% to 68.4%, by 2 percentage points. The share of people who are “very worried” increased from 29.6 to 31.6%, also by 2 percentage points. It appears that 2% of the sample went from not very concerned about the environment to “very worried” about the environment. 
+
+
+```{r}
+# Calculate the distribution of environmental concerns in 2010 and 2011
+change_plh0036 <- soep_unbal %>%
+  group_by(fukushima, worry) %>%
+  summarize(freq=n()) %>%
+  mutate(share=freq/sum(freq)*100) %>%
+  mutate(fukushima = ifelse(fukushima==0, "Before Fukushima", "After Fukushima"),
+         fukushima = factor(fukushima, levels=c("Before Fukushima", "After Fukushima"))) 
+
+ggplot(change_plh0036, aes(x=worry, y=share, fill=worry)) +
+  geom_bar(stat="identity", position='dodge') +
+  facet_wrap(~fukushima) +
+  theme_minimal() + 
+  labs(x="Level of environmental concern (1=not worried, 2=worried, 3=very worried)",
+       y="% of the sample") +
+  theme(legend.position="none") +
+  scale_fill_brewer() +
+  labs(title="Graph 1. Distribution of environmental concerns before and after Fukushima")
+
+```
+
+## Pooled Ordinary Least Squares (POLS)
+
+Table 3 summarizes the result of pooled OLS regression models. The binary dependent variable is “worry”, which indicates whether the individual is “very worried” about the environment (1) or “not worried/slightly worried” (0). 
+
+All models support the first hypothesis (H1), that the Fukushima disaster increased the probability of being “very worried” about the environment. All coefficients of the “fukushima” variable are positive and statistically significant. Model 1 indicates that Fukushima increased the probability of being “very worried” about the environment by 1.9% in comparison to those who have not. Model 2, which holds gender, family status, education level, age group and employment constant, the Fukushima disaster increased the probability of being very worried by 2 percentage points. Further controlling for the interaction effect between gender and family status yields the same result (model 3). 
+
+Models 2 and 3 support the second hypothesis (H2): in comparison to women, the probability of being “very worried” about the environment decreases by about 4.5 percentage points for men.  
+
+There is no evidence that supports H3, that the effect of being female on the environmental concern would be higher for the married than the single. The interaction effect between family status and gender is neither statistically nor substantially significant. Neither is the coefficient of family status. Thus, gender plays a significant role in the change in environmental concerns regardless of family status. There is no significant difference in the level of environmental concerns between single and married people. 
+
+Model 3 supports H4. The coefficient of the education variable suggests that having medium or high-level education increases the probability of being “very worried” about the environment by about 3% in comparison to those with a low level of education. The coefficient is also statistically significant. 
+
+The results also suggest that being in 40s-50s increases the probability of being very worried by 5.3 to 5.8% in comparison to people who are 17 to 29 years old. The probability of being very worried is the lowest in the reference group, 17-29. Unemployment also plays a significant role, which increases the probability of being worried by 5% in comparison to those in employment. The non-working group has a higher probability of being “very worried” than those in employment by 3 percentage points. This contradicts the initial expectation that being unemployed would decrease the level of environmental concerns about the environment.  
+
 
 ```{r results="asis"}
-soep_bal_1011$plh0036 <- as.numeric(soep_bal_1011$plh0036)
+soep_unbal$worry <- as.numeric(soep_unbal$worry)
 
-ols_1 <- lm(plh0036 ~ fukushima, data=soep_bal_1011)
-ols_2 <- lm(plh0036 ~ fukushima + sex + fam + agec + emp + edu + mig, data=soep_bal_1011)
-ols_3 <- lm(plh0036 ~ fukushima + sex + fam + agec + emp + edu + mig, data=soep_bal_1011)
-ols_4 <- lm(plh0036 ~ fukushima + policy + sex + fam + agec + emp + edu + mig, data=soep_bal_1011)
+ols_1 <- lm(worry ~ fukushima, data=soep_unbal)
+ols_2 <- lm(worry ~ fukushima + sex + fam + edu + agec + emp, data=soep_unbal)
+ols_3 <- lm(worry ~ fukushima + sex*fam + edu + agec + emp, data=soep_unbal)
 
-stargazer(ols_1, ols_2, ols_3, ols_4, type="text", title = "Ordinary Least Squares", header=FALSE)
+stargazer(ols_1, ols_2, ols_3, type="html", title="Table 3. The Fukushima disaster on March 11, 2011 and concerns about the environment: Results of an Linear Probability Model OLS regression 
+", header=FALSE)
 ```
 
-# Fixed Effects 
+## Fixed Effects 
 
-In fixed effects model, the effect of unobserved individual heterogeneity cancels out, giving more unbiased results. This model yields a similar result, but the magnitude of the impact is smaller than the OLS: Fukushima changed increased environmental concerns by 0.036 (1.2%). This model is still limited because there may be other external events that canceled out the effect of Fukushima, such as the announcement of nuclear phase-out policy (Goebel et al., 2013). 
-
-Since there is not much time-variance in variables that measure life satisfaction and health, their effects cannot be properly assessed. 
+The fixed-effects model would yield a more unbiased estimator for the effect of Fukushima on the dependent variable. This is because the unobserved individual heterogeneities cancel out in the regression equation. The result suggests that the Fukushima disaster increased the probability of being very worried about the environment by 2.5 percentage points. It is statistically significant and more substantial than the pooled OLS regression result. However, in-group differences cannot be measured in this model because the coefficients of time-constant variables are canceled out in the regression equation. 
 
 ```{r results="asis"}
-fe_1 <- plm(plh0036 ~ fukushima, data=soep_bal_1011, index = c("id"), model="within")
-fe_2 <- plm(plh0036 ~ fukushima + policy, data=soep_bal_1011, index = "id", model = "within")
+fe_1 <- plm(worry ~ fukushima, data=soep_unbal, index = c("id", "year"), model="within")
 
-stargazer(fe_1, fe_2, type="text", title ="Fixed Effects", header=FALSE)
+stargazer(fe_1, type="html", title="Table 4. The Fukushima disaster on March 11, 2011 and concerns about the environment: Results of an Linear Probability Model Fixed Effects
+", header=FALSE)
 ```
 
 
-# Difference in Difference
+# Conclusion
 
-In 
+## Summary of Main Results
 
+This research showed that the Fukushima nuclear accident significantly increased people’s concerns about the environment in Germany. After the Fukushima accident, the probability of being “very worried” about the environment increased by 2.5%. This estimation is yielded by applying the fixed effects method on a linear probability regression model. A pooled OLS model also yielded a statistically significant coefficient of 2 percentage points. However, the result of the fixed effects model is more reliable since the fixed effects method controls unobserved individual heterogeneities such as the respondents' political views and sensitivity to external threats. 
 
-## Data prep for Diff in Diff
+The pooled OLS regression model revealed group differences in the effect of Fukushima on environmental concerns. Model results showed that gender plays a significant role in concern for the environment. Women are more likely to be worried about the environment by about 4.5 percentage points. However, contradicting the initial hypothesis and Ekholm (2020), the study found no evidence that suggests that the effect of gender depends on their family status. 
 
+The probability of being very worried increases by 3% in comparison to those with a low level of education, affirming the initial hypothesis. Other demographic factors also played a significant role in determining the probability of being very worried. People in their 40s and 50s showed the highest probability of being worried about the environment (5.3 to 5.8% higher than those who are 17 to 29 years old). People who were not employed or those that are not looking for work showed a higher probability of being “very worried” by 3% and 5%, respectively. 
 
-```{r results='asis'}
-soep_did <- soep_bal_1011 %>% 
-  group_by(id) %>% 
-  mutate(fukushima = as.numeric(fukushima),
-         policy = as.numeric(policy)) %>%
-  mutate(plh0036_lag = dplyr::lag(plh0036),
-         fukushima_lag = dplyr::lag(fukushima),
-         policy_lag = dplyr::lag(policy)) %>%
-  ungroup() %>%
-  mutate(diff_plh0036 = plh0036 - plh0036_lag,
-         diff_fukushima = fukushima - fukushima_lag,
-         diff_policy = policy - policy_lag)
+## Policy Implications
 
-did <- lm(diff_plh0036 ~ diff_fukushima, data=soep_did)
-did_2 <- lm(diff_plh0036 ~ diff_fukushima + diff_policy, data=soep_did)
-stargazer(did, did_2, type="text", title ="Differenc in Difference", header=FALSE)
+Findings in this research suggest that Kingdon’s streams model of policy change (figure 1) is empirically robust. It implies global man-made disasters such as Fukushima can provide a window of opportunity for a policy change. Public policies that were seen as not feasible due to political opposition can quickly be adopted after a global disaster, which increases environmental concerns. Germany’s swift adoption of a nuclear phase-out policy is a case in point. Therefore, policy-makers must quickly respond to global disasters by administering policy changes that can change the root cause of the disaster, tantamount to the scale of the disaster. 
 
-```
+Natural disasters are expected to occur more frequently as the climate change crisis deepens. Implications of the research suggest that as the climate crisis worsens, the window of opportunities is opening to make sustainable and low-carbon structural changes to the current energy-intensive infrastructure and fossil-fuel-based energy systems.
 
+## Limitations and Suggestions
 
-# References 
+This research did not consider the effect that the government’s announcement to phase out nuclear power had on environmental concerns. The swift public action relieved people’s concerns about the environment. Having omitted this factor may have led to a downward bias in the effect of Fukushima on people’s environmental concerns. Goebel et al. (2015) report that the government’s policy action indeed decreased public concerns about the environment. 
 
-Berger, E. M. (2008). A Note on the High Stability of Happiness: The Minimal Effects of a Nuclear Catastrophe on Life Satisfaction. SSRN Electronic Journal. https://doi.org/10.2139/ssrn.1143830 
+Future research can investigate whether the implications of this research can be directly applied to climate change. If the public reacts differently to climate change-related events such as floods, heatwaves, and forest fires. Also, people’s reactions to natural disasters can change over time. The increasing frequency of natural disasters decreases the effect that natural disasters have on people’s concerns about the environment. This factor would challenge the policy implications in this paper. 
 
-Goebel, Krekel, Tiefenbach, Ziebarth. (2013). "Natural Disaster, Policy Action, and Mental Well-Being: The Case of Fukushima," IZA Discussion Papers 7691, Institute of Labor Economics (IZA).
-
-Kingdon, J. W. (2011). Agendas, alternatives, and public policies. Boston: Longman.
