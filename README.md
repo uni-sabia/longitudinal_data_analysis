@@ -15,3 +15,5 @@
  - Fixed effects modelling
 7) Social exclusion & party preferences across life course
  - Sequence analysis
+8) Project: "Did the Fukushima nuclear disaster change people's concerns about the environment?
+: Quantifying the effect of global natural disaster on public opinion and implications for policy change"
